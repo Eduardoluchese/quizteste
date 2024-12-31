@@ -110,8 +110,11 @@
                 userId: localStorage.getItem('quizUserId') || 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
                 sessionId: 'session_' + Date.now(),
                 startTime: Date.now(),
+                endTime: null,
                 path: [],
-                currentSection: 'section-1'
+                currentSection: 'section-1',
+                userName: '',
+                responses: {}
             };
 
             // Salva ID do usuário
@@ -128,42 +131,59 @@
                 console.log('Analytics salvos:', analytics);
             }
 
-function sendAnalytics() {
-    const analytics = localStorage.getItem('quizAnalytics');
-    if (analytics && ANALYTICS_URL !== 'https://script.google.com/macros/s/AKfycbyvGzMmpICirvoi_6XXPaHAIEMQSGAFW82Gpid9Y9CpDMXm63pf6B-SYpRgOTn5Vin3/exec') {
-        try {
-            // Cria um elemento script
-            const script = document.createElement('script');
-            
-            // Cria um nome de callback único
-            const callbackName = 'callback_' + Date.now();
-            
-            // Define o callback
-            window[callbackName] = function(response) {
-                console.log('Resposta recebida:', response);
-                if (response.status === 'success') {
-                    localStorage.removeItem('quizAnalytics');
-                    console.log('Analytics enviados com sucesso!');
+            function sendAnalytics() {
+                const analytics = localStorage.getItem('quizAnalytics');
+                if (analytics && ANALYTICS_URL !== 'https://script.google.com/macros/s/AKfycbyvGzMmpICirvoi_6XXPaHAIEMQSGAFW82Gpid9Y9CpDMXm63pf6B-SYpRgOTn5Vin3/exec') {
+                    try {
+                        // Cria um elemento script
+                        const script = document.createElement('script');
+                        
+                        // Cria um nome de callback único
+                        const callbackName = 'callback_' + Date.now();
+                        
+                        // Define o callback
+                        window[callbackName] = function(response) {
+                            console.log('Resposta recebida:', response);
+                            if (response.status === 'success') {
+                                localStorage.removeItem('quizAnalytics');
+                                console.log('Analytics enviados com sucesso!');
+                            }
+                            // Remove o script e o callback
+                            delete window[callbackName];
+                            document.body.removeChild(script);
+                        };
+                        
+                        // Constrói a URL com JSONP
+                        const url = `${ANALYTICS_URL}?callback=${callbackName}&data=${encodeURIComponent(analytics)}`;
+                        
+                        // Define a URL do script
+                        script.src = url;
+                        
+                        // Adiciona o script ao documento
+                        document.body.appendChild(script);
+                        
+                    } catch (error) {
+                        console.error('Erro ao enviar analytics:', error);
+                    }
                 }
-                // Remove o script e o callback
-                delete window[callbackName];
-                document.body.removeChild(script);
-            };
-            
-            // Constrói a URL com JSONP
-            const url = `${ANALYTICS_URL}?callback=${callbackName}&data=${encodeURIComponent(analytics)}`;
-            
-            // Define a URL do script
-            script.src = url;
-            
-            // Adiciona o script ao documento
-            document.body.appendChild(script);
-            
-        } catch (error) {
-            console.error('Erro ao enviar analytics:', error);
-        }
-    }
-}
+            }
+
+            // Envia dados a cada 30 segundos
+            setInterval(sendAnalytics, 30000);
+
+            // Envia dados quando a página é fechada
+            window.addEventListener('beforeunload', () => {
+                quizAnalytics.endTime = Date.now();
+                saveAnalytics();
+                sendAnalytics();
+            });
+
+            // Envia dados quando termina o quiz
+            function finishQuiz() {
+                quizAnalytics.endTime = Date.now();
+                saveAnalytics();
+                sendAnalytics();
+            }
 
             function showSection(sectionId) {
                 const sections = document.querySelectorAll('.quiz-section');
@@ -203,22 +223,23 @@ function sendAnalytics() {
                 document.querySelector('.progress-fill').style.width = progress + '%';
             }
 
-// Envia dados a cada 30 segundos
-setInterval(sendAnalytics, 30000);
+            // Função para salvar o nome do usuário
+            function saveUserName() {
+                const nameInput = document.getElementById('name').value.trim();
+                if (nameInput) {
+                    quizAnalytics.userName = nameInput;
+                } else {
+                    quizAnalytics.userName = 'Anônimo';
+                }
+                saveAnalytics();
+            }
 
-// Envia dados quando a página é fechada
-window.addEventListener('beforeunload', () => {
-    quizAnalytics.endTime = Date.now();
-    saveAnalytics();
-    sendAnalytics();
-});
-
-// Envia dados quando termina o quiz
-function finishQuiz() {
-    quizAnalytics.endTime = Date.now();
-    saveAnalytics();
-    sendAnalytics();
-}
+            // Função para salvar respostas das perguntas
+            function saveResponse(question, answer) {
+                quizAnalytics.responses[question] = answer;
+                saveAnalytics();
+            }
+        </script> <!-- Fechando a tag script corretamente -->
 
         <!-- Barra de Progresso -->
         <div class="progress-bar">
@@ -231,25 +252,25 @@ function finishQuiz() {
             <div class="input-group">
                 <input type="text" id="name" placeholder="Digite seu nome" />
             </div>
-            <button class="button" onclick="showSection('section-2')">Começar</button>
+            <button class="button" onclick="saveUserName(); showSection('section-2')">Começar</button>
         </section>
 
         <!-- Seção 2 -->
         <section id="section-2" class="quiz-section">
             <h2>Pergunta 1</h2>
             <p>Qual sua cor favorita?</p>
-            <button class="button" onclick="showSection('section-3')">Azul</button>
-            <button class="button" onclick="showSection('section-3')">Vermelho</button>
-            <button class="button" onclick="showSection('section-3')">Verde</button>
+            <button class="button" onclick="saveResponse('Pergunta 1', 'Azul'); showSection('section-3')">Azul</button>
+            <button class="button" onclick="saveResponse('Pergunta 1', 'Vermelho'); showSection('section-3')">Vermelho</button>
+            <button class="button" onclick="saveResponse('Pergunta 1', 'Verde'); showSection('section-3')">Verde</button>
         </section>
 
         <!-- Seção 3 -->
         <section id="section-3" class="quiz-section">
             <h2>Pergunta 2</h2>
             <p>Qual seu animal favorito?</p>
-            <button class="button" onclick="showSection('section-4')">Cachorro</button>
-            <button class="button" onclick="showSection('section-4')">Gato</button>
-            <button class="button" onclick="showSection('section-4')">Pássaro</button>
+            <button class="button" onclick="saveResponse('Pergunta 2', 'Cachorro'); showSection('section-4')">Cachorro</button>
+            <button class="button" onclick="saveResponse('Pergunta 2', 'Gato'); showSection('section-4')">Gato</button>
+            <button class="button" onclick="saveResponse('Pergunta 2', 'Pássaro'); showSection('section-4')">Pássaro</button>
         </section>
 
         <!-- Seção 4 -->
@@ -257,7 +278,7 @@ function finishQuiz() {
             <h2>Parabéns!</h2>
             <p>Você completou o quiz!</p>
             <p>Suas respostas foram registradas.</p>
-            <button class="button" onclick="location.reload()">Recomeçar</button>
+            <button class="button" onclick="finishQuiz(); location.reload();">Recomeçar</button>
         </section>
     </div>
 </body>
