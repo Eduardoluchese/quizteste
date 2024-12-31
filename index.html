@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quiz de Teste - Analytics</title>
     <style>
+        /* Estilos CSS mantidos conforme seu código original */
         body {
             font-family: 'Arial', sans-serif;
             line-height: 1.6;
@@ -91,6 +92,9 @@
     </style>
 </head>
 <body>
+    <!-- Iframe oculto para envio do formulário -->
+    <iframe name="hidden_iframe" style="display:none;"></iframe>
+    
     <div class="quiz-container">
         <!-- Configurações do Quiz -->
         <script>
@@ -133,38 +137,29 @@
 
             function sendAnalytics() {
                 const analytics = localStorage.getItem('quizAnalytics');
-                if (analytics && ANALYTICS_URL !== 'https://script.google.com/macros/s/AKfycbyvGzMmpICirvoi_6XXPaHAIEMQSGAFW82Gpid9Y9CpDMXm63pf6B-SYpRgOTn5Vin3/exec') {
-                    try {
-                        // Cria um elemento script
-                        const script = document.createElement('script');
-                        
-                        // Cria um nome de callback único
-                        const callbackName = 'callback_' + Date.now();
-                        
-                        // Define o callback
-                        window[callbackName] = function(response) {
-                            console.log('Resposta recebida:', response);
-                            if (response.status === 'success') {
-                                localStorage.removeItem('quizAnalytics');
-                                console.log('Analytics enviados com sucesso!');
-                            }
-                            // Remove o script e o callback
-                            delete window[callbackName];
-                            document.body.removeChild(script);
-                        };
-                        
-                        // Constrói a URL com JSONP
-                        const url = `${ANALYTICS_URL}?callback=${callbackName}&data=${encodeURIComponent(analytics)}`;
-                        
-                        // Define a URL do script
-                        script.src = url;
-                        
-                        // Adiciona o script ao documento
-                        document.body.appendChild(script);
-                        
-                    } catch (error) {
-                        console.error('Erro ao enviar analytics:', error);
-                    }
+                if (analytics && ANALYTICS_URL) {
+                    // Cria um formulário oculto
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = ANALYTICS_URL;
+                    form.target = 'hidden_iframe'; // Define o alvo para o iframe oculto
+                    form.style.display = 'none';
+                    
+                    // Adiciona os dados como um campo oculto
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'data';
+                    input.value = analytics;
+                    form.appendChild(input);
+                    
+                    // Adiciona o formulário ao corpo do documento e envia
+                    document.body.appendChild(form);
+                    form.submit();
+                    
+                    // Remove o formulário após o envio
+                    document.body.removeChild(form);
+                    
+                    console.log('Dados enviados via formulário oculto.');
                 }
             }
 
