@@ -128,27 +128,27 @@
                 console.log('Analytics salvos:', analytics);
             }
 
-            async function sendAnalytics() {
-                const analytics = localStorage.getItem('quizAnalytics');
-                if (analytics && ANALYTICS_URL !== 'SEU_GOOGLE_SCRIPT_URL_AQUI') {
-                    try {
-                        const response = await fetch(ANALYTICS_URL, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: analytics
-                        });
-                        
-                        if (response.ok) {
-                            localStorage.removeItem('quizAnalytics');
-                            console.log('Analytics enviados com sucesso!');
-                        }
-                    } catch (error) {
-                        console.error('Erro ao enviar analytics:', error);
-                    }
-                }
+async function sendAnalytics() {
+    const analytics = localStorage.getItem('quizAnalytics');
+    if (analytics && ANALYTICS_URL !== 'https://script.google.com/macros/s/AKfycbyrhF1gN_IyVw4ncT35L6J_jcue82QqY4ilNtLLelh7gOg67BWf-p-ENJmnMU4limY3/exec') {
+        try {
+            // Constrói a URL com os dados como parâmetro
+            const url = `${ANALYTICS_URL}?data=${encodeURIComponent(analytics)}`;
+            console.log('Enviando dados para:', url);
+            
+            const response = await fetch(url);
+            const responseText = await response.text();
+            console.log('Resposta do servidor:', responseText);
+            
+            if (response.ok) {
+                localStorage.removeItem('quizAnalytics');
+                console.log('Analytics enviados com sucesso!');
             }
+        } catch (error) {
+            console.error('Erro ao enviar analytics:', error);
+        }
+    }
+}
 
             function showSection(sectionId) {
                 const sections = document.querySelectorAll('.quiz-section');
