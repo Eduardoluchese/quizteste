@@ -92,9 +92,6 @@
     </style>
 </head>
 <body>
-    <!-- Iframe oculto para envio do formulário -->
-    <iframe name="hidden_iframe" style="display:none;"></iframe>
-    
     <div class="quiz-container">
         <!-- Configurações do Quiz -->
         <script>
@@ -104,8 +101,8 @@
                 category: 'teste'
             };
 
-            // Substitua esta URL pela URL correta do seu Web App
-            const ANALYTICS_URL = 'https://script.google.com/macros/s/AKfycbxFJgH6T3EDne0nHMcXvSBJYekGm9-6ZFFi2gEFkeH6qn3Gdthwb_lwU9ai5G1tYtL-/exec'; // **Atualize com a sua URL correta**
+            // **Atualize esta URL com a URL correta do seu Web App (terminando com /exec)**
+            const ANALYTICS_URL = 'https://script.google.com/macros/s/AKfycbxFJgH6T3EDne0nHMcXvSBJYekGm9-6ZFFi2gEFkeH6qn3Gdthwb_lwU9ai5G1tYtL-/exec';
             
             const quizAnalytics = {
                 quizId: QUIZ_CONFIG.id,
@@ -135,31 +132,25 @@
                 console.log('Analytics salvos:', analytics);
             }
 
-            function sendAnalytics() {
+            async function sendAnalytics() {
                 const analytics = localStorage.getItem('quizAnalytics');
                 if (analytics && ANALYTICS_URL) {
-                    // Cria um formulário oculto
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = ANALYTICS_URL;
-                    form.target = 'hidden_iframe'; // Define o alvo para o iframe oculto
-                    form.style.display = 'none';
-                    
-                    // Adiciona os dados como um campo oculto
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = 'data';
-                    input.value = analytics;
-                    form.appendChild(input);
-                    
-                    // Adiciona o formulário ao corpo do documento e envia
-                    document.body.appendChild(form);
-                    form.submit();
-                    
-                    // Remove o formulário após o envio
-                    document.body.removeChild(form);
-                    
-                    console.log('Dados enviados via formulário oculto.');
+                    try {
+                        const response = await fetch(ANALYTICS_URL, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded'
+                            },
+                            body: new URLSearchParams({
+                                'data': analytics
+                            })
+                        });
+
+                        const text = await response.text();
+                        console.log('Resposta do servidor:', text);
+                    } catch (error) {
+                        console.error('Erro ao enviar dados:', error);
+                    }
                 }
             }
 
@@ -171,10 +162,10 @@
             });
 
             // Envia dados quando termina o quiz
-            function finishQuiz() {
+            async function finishQuiz() {
                 quizAnalytics.endTime = Date.now();
                 saveAnalytics();
-                sendAnalytics();
+                await sendAnalytics();
                 alert('Suas respostas foram salvas com sucesso!');
                 location.reload();
             }
