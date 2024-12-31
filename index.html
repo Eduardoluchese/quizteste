@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quiz de Teste - Analytics</title>
     <style>
-        /* Estilos CSS mantidos conforme seu código original */
+        /* Seus estilos CSS aqui */
         body {
             font-family: 'Arial', sans-serif;
             line-height: 1.6;
@@ -104,8 +104,8 @@
                 category: 'teste'
             };
 
-            // Substitua esta URL pela URL do seu Google Apps Script depois
-            const ANALYTICS_URL = 'https://script.google.com/macros/s/AKfycbzZdnrtt25opim5o67H15DegiTwEEMYRuC4DqmQPm4FYK_jR7nppE_22DeA6d12AqUr/exec';
+            // Substitua esta URL pela URL correta do seu Web App
+            const ANALYTICS_URL = 'https://script.google.com/macros/s/AKfycbxFJgH6T3EDne0nHMcXvSBJYekGm9-6ZFFi2gEFkeH6qn3Gdthwb_lwU9ai5G1tYtL-/exec'; // **Atualize com a sua URL correta**
             
             const quizAnalytics = {
                 quizId: QUIZ_CONFIG.id,
@@ -163,9 +163,6 @@
                 }
             }
 
-            // Envia dados a cada 30 segundos
-            setInterval(sendAnalytics, 30000);
-
             // Envia dados quando a página é fechada
             window.addEventListener('beforeunload', () => {
                 quizAnalytics.endTime = Date.now();
@@ -178,6 +175,8 @@
                 quizAnalytics.endTime = Date.now();
                 saveAnalytics();
                 sendAnalytics();
+                alert('Suas respostas foram salvas com sucesso!');
+                location.reload();
             }
 
             function showSection(sectionId) {
@@ -223,10 +222,11 @@
                 const nameInput = document.getElementById('name').value.trim();
                 if (nameInput) {
                     quizAnalytics.userName = nameInput;
+                    saveAnalytics();
+                    showSection('section-2');
                 } else {
-                    quizAnalytics.userName = 'Anônimo';
+                    alert('Por favor, insira seu nome para começar o quiz.');
                 }
-                saveAnalytics();
             }
 
             // Função para salvar respostas das perguntas
@@ -247,7 +247,7 @@
             <div class="input-group">
                 <input type="text" id="name" placeholder="Digite seu nome" />
             </div>
-            <button class="button" onclick="saveUserName(); showSection('section-2')">Começar</button>
+            <button class="button" onclick="saveUserName();">Começar</button>
         </section>
 
         <!-- Seção 2 -->
@@ -273,7 +273,7 @@
             <h2>Parabéns!</h2>
             <p>Você completou o quiz!</p>
             <p>Suas respostas foram registradas.</p>
-            <button class="button" onclick="finishQuiz(); location.reload();">Recomeçar</button>
+            <button class="button" onclick="finishQuiz();">Recomeçar</button>
         </section>
     </div>
 </body>
