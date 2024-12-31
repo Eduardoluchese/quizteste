@@ -6,92 +6,13 @@
     <title>Quiz de Teste - Analytics</title>
     <style>
         /* Seus estilos CSS aqui */
-        body {
-            font-family: 'Arial', sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 20px;
-            background: #f0f2f5;
-        }
-
-        .quiz-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .quiz-section {
-            display: none;
-            animation: fadeIn 0.5s;
-        }
-
-        .quiz-section.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .button {
-            display: block;
-            width: 100%;
-            padding: 15px;
-            margin: 10px 0;
-            border: none;
-            border-radius: 8px;
-            background: #9333ea;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .button:hover {
-            opacity: 0.9;
-            transform: translateY(-2px);
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 10px;
-            background: #e0e0e0;
-            border-radius: 5px;
-            margin: 20px 0;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            width: 0%;
-            height: 100%;
-            background: #9333ea;
-            transition: width 0.5s ease;
-        }
-
-        h1, h2 {
-            color: #333;
-            margin-bottom: 20px;
-        }
-
-        .input-group {
-            margin-bottom: 20px;
-        }
-
-        input[type="text"] {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 16px;
-            box-sizing: border-box;
-        }
+        /* ... (mesmos estilos anteriores) ... */
     </style>
 </head>
 <body>
+    <!-- Iframe oculto para envio do formulário -->
+    <iframe name="hidden_iframe" style="display:none;"></iframe>
+    
     <div class="quiz-container">
         <!-- Configurações do Quiz -->
         <script>
@@ -124,33 +45,39 @@
             }
 
             function saveAnalytics() {
-                // Atualiza o objeto quizAnalytics no localStorage em vez de empurrar para um array
-                localStorage.setItem('quizAnalytics', JSON.stringify(quizAnalytics));
-                console.log('Analytics salvos:', quizAnalytics);
+                const analytics = JSON.parse(localStorage.getItem('quizAnalytics') || '[]');
+                analytics.push(quizAnalytics);
+                localStorage.setItem('quizAnalytics', JSON.stringify(analytics));
+
+                // Para teste, vamos mostrar no console
+                console.log('Analytics salvos:', analytics);
             }
 
-            async function sendAnalytics() {
+            function sendAnalytics() {
                 const analytics = localStorage.getItem('quizAnalytics');
                 if (analytics && ANALYTICS_URL) {
-                    try {
-                        const response = await fetch(ANALYTICS_URL, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded'
-                            },
-                            body: new URLSearchParams({
-                                'data': analytics
-                            })
-                        });
-
-                        const text = await response.text();
-                        console.log('Resposta do servidor:', text);
-
-                        // Após o envio bem-sucedido, remova os dados do localStorage
-                        localStorage.removeItem('quizAnalytics');
-                    } catch (error) {
-                        console.error('Erro ao enviar dados:', error);
-                    }
+                    // Cria um formulário oculto
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = ANALYTICS_URL;
+                    form.target = 'hidden_iframe'; // Define o alvo para o iframe oculto
+                    form.style.display = 'none';
+                    
+                    // Adiciona os dados como um campo oculto
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'data';
+                    input.value = analytics;
+                    form.appendChild(input);
+                    
+                    // Adiciona o formulário ao corpo do documento e envia
+                    document.body.appendChild(form);
+                    form.submit();
+                    
+                    // Remove o formulário após o envio
+                    document.body.removeChild(form);
+                    
+                    console.log('Dados enviados via formulário oculto.');
                 }
             }
 
@@ -162,10 +89,10 @@
             });
 
             // Envia dados quando termina o quiz
-            async function finishQuiz() {
+            function finishQuiz() {
                 quizAnalytics.endTime = Date.now();
                 saveAnalytics();
-                await sendAnalytics();
+                sendAnalytics();
                 alert('Suas respostas foram salvas com sucesso!');
                 location.reload();
             }
