@@ -102,7 +102,7 @@
             };
 
             // **Atualize esta URL com a URL correta do seu Web App (terminando com /exec)**
-            const ANALYTICS_URL = 'https://script.google.com/macros/s/AKfycbxFJgH6T3EDne0nHMcXvSBJYekGm9-6ZFFi2gEFkeH6qn3Gdthwb_lwU9ai5G1tYtL-/exec';
+            const ANALYTICS_URL = 'https://script.google.com/macros/s/SEU_SCRIPT_ID/exec';
             
             const quizAnalytics = {
                 quizId: QUIZ_CONFIG.id,
@@ -124,12 +124,9 @@
             }
 
             function saveAnalytics() {
-                const analytics = JSON.parse(localStorage.getItem('quizAnalytics') || '[]');
-                analytics.push(quizAnalytics);
-                localStorage.setItem('quizAnalytics', JSON.stringify(analytics));
-
-                // Para teste, vamos mostrar no console
-                console.log('Analytics salvos:', analytics);
+                // Atualiza o objeto quizAnalytics no localStorage em vez de empurrar para um array
+                localStorage.setItem('quizAnalytics', JSON.stringify(quizAnalytics));
+                console.log('Analytics salvos:', quizAnalytics);
             }
 
             async function sendAnalytics() {
@@ -148,6 +145,9 @@
 
                         const text = await response.text();
                         console.log('Resposta do servidor:', text);
+
+                        // Após o envio bem-sucedido, remova os dados do localStorage
+                        localStorage.removeItem('quizAnalytics');
                     } catch (error) {
                         console.error('Erro ao enviar dados:', error);
                     }
