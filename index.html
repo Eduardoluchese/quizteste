@@ -128,22 +128,37 @@
                 console.log('Analytics salvos:', analytics);
             }
 
-async function sendAnalytics() {
+function sendAnalytics() {
     const analytics = localStorage.getItem('quizAnalytics');
-    if (analytics && ANALYTICS_URL !== 'https://script.google.com/macros/s/AKfycbyrhF1gN_IyVw4ncT35L6J_jcue82QqY4ilNtLLelh7gOg67BWf-p-ENJmnMU4limY3/exec') {
+    if (analytics && ANALYTICS_URL !== 'https://script.google.com/macros/s/AKfycbyvGzMmpICirvoi_6XXPaHAIEMQSGAFW82Gpid9Y9CpDMXm63pf6B-SYpRgOTn5Vin3/exec') {
         try {
-            // Constrói a URL com os dados como parâmetro
-            const url = `${ANALYTICS_URL}?data=${encodeURIComponent(analytics)}`;
-            console.log('Enviando dados para:', url);
+            // Cria um elemento script
+            const script = document.createElement('script');
             
-            const response = await fetch(url);
-            const responseText = await response.text();
-            console.log('Resposta do servidor:', responseText);
+            // Cria um nome de callback único
+            const callbackName = 'callback_' + Date.now();
             
-            if (response.ok) {
-                localStorage.removeItem('quizAnalytics');
-                console.log('Analytics enviados com sucesso!');
-            }
+            // Define o callback
+            window[callbackName] = function(response) {
+                console.log('Resposta recebida:', response);
+                if (response.status === 'success') {
+                    localStorage.removeItem('quizAnalytics');
+                    console.log('Analytics enviados com sucesso!');
+                }
+                // Remove o script e o callback
+                delete window[callbackName];
+                document.body.removeChild(script);
+            };
+            
+            // Constrói a URL com JSONP
+            const url = `${ANALYTICS_URL}?callback=${callbackName}&data=${encodeURIComponent(analytics)}`;
+            
+            // Define a URL do script
+            script.src = url;
+            
+            // Adiciona o script ao documento
+            document.body.appendChild(script);
+            
         } catch (error) {
             console.error('Erro ao enviar analytics:', error);
         }
@@ -188,13 +203,22 @@ async function sendAnalytics() {
                 document.querySelector('.progress-fill').style.width = progress + '%';
             }
 
-            // Envia analytics quando usuário sair
-            window.addEventListener('beforeunload', () => {
-                quizAnalytics.endTime = Date.now();
-                saveAnalytics();
-                sendAnalytics();
-            });
-        </script>
+// Envia dados a cada 30 segundos
+setInterval(sendAnalytics, 30000);
+
+// Envia dados quando a página é fechada
+window.addEventListener('beforeunload', () => {
+    quizAnalytics.endTime = Date.now();
+    saveAnalytics();
+    sendAnalytics();
+});
+
+// Envia dados quando termina o quiz
+function finishQuiz() {
+    quizAnalytics.endTime = Date.now();
+    saveAnalytics();
+    sendAnalytics();
+}
 
         <!-- Barra de Progresso -->
         <div class="progress-bar">
