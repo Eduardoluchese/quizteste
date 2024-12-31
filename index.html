@@ -104,19 +104,20 @@
             // **Atualize esta URL com a URL correta do seu Web App (terminando com /exec)**
             const ANALYTICS_URL = 'https://script.google.com/macros/s/AKfycbxFJgH6T3EDne0nHMcXvSBJYekGm9-6ZFFi2gEFkeH6qn3Gdthwb_lwU9ai5G1tYtL-/exec';
             
-            const quizAnalytics = {
-                quizId: QUIZ_CONFIG.id,
-                quizName: QUIZ_CONFIG.name,
-                quizCategory: QUIZ_CONFIG.category,
-                userId: localStorage.getItem('quizUserId') || 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-                sessionId: 'session_' + Date.now(),
-                startTime: Date.now(),
-                endTime: null,
-                path: [],
-                currentSection: 'section-1',
-                userName: '',
-                responses: {}
-            };
+         const quizAnalytics = {
+    quizId: QUIZ_CONFIG.id,
+    quizName: QUIZ_CONFIG.name,
+    quizCategory: QUIZ_CONFIG.category,
+    userId: localStorage.getItem('quizUserId') || 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+    sessionId: 'session_' + Date.now(),
+    startTime: Date.now(),
+    endTime: null,
+    userName: '',
+    responses: {},
+    furthestSection: 'section-1',
+    totalTimeSpent: 0,
+    lastTimestamp: Date.now()
+};
 
             // Salva ID do usuário
             if (!localStorage.getItem('quizUserId')) {
@@ -134,29 +135,31 @@
 }
 
 async function sendAnalytics() {
-    const analytics = localStorage.getItem('quizAnalytics');
-    if (analytics && ANALYTICS_URL) {
-        try {
-            // Envia apenas uma vez
-            if (!quizAnalytics.sent) {
-                const response = await fetch(ANALYTICS_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: new URLSearchParams({
-                        'data': analytics
-                    })
-                });
+    if (quizAnalytics.sent) return;
+    
+    const singleLineData = [{
+        ...quizAnalytics,
+        path: [{
+            from: 'section-1',
+            to: quizAnalytics.furthestSection,
+            timestamp: new Date().toISOString(),
+            timeSpent: quizAnalytics.totalTimeSpent
+        }]
+    }];
 
-                if (response.ok) {
-                    quizAnalytics.sent = true;
-                    localStorage.removeItem('quizAnalytics');
-                }
-            }
-        } catch (error) {
-            console.error('Erro ao enviar dados:', error);
-        }
+    try {
+        await fetch(ANALYTICS_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+                'data': JSON.stringify(singleLineData)
+            })
+        });
+        quizAnalytics.sent = true;
+    } catch (error) {
+        console.error('Erro:', error);
     }
 }
 
@@ -178,36 +181,27 @@ async function finishQuiz() {
     }
 }
 
-            function showSection(sectionId) {
-                const sections = document.querySelectorAll('.quiz-section');
-                sections.forEach(section => section.classList.remove('active'));
-                
-                const targetSection = document.getElementById(sectionId);
-                if (targetSection) {
-                    targetSection.classList.add('active');
-                    
-                    // Registra mudança de seção
-                    const timestamp = Date.now();
-                    const timeInLastSection = quizAnalytics.path.length > 0 
-                        ? timestamp - quizAnalytics.path[quizAnalytics.path.length - 1].timestamp 
-                        : 0;
-                    
-                    quizAnalytics.path.push({
-                        from: quizAnalytics.currentSection,
-                        to: sectionId,
-                        timestamp: timestamp,
-                        timeSpent: timeInLastSection
-                    });
-                    
-                    quizAnalytics.currentSection = sectionId;
-                    
-                    // Atualiza barra de progresso
-                    updateProgress(sectionId);
-                    
-                    // Salva analytics
-                    saveAnalytics();
-                }
-            }
+    function showSection(sectionId) {
+    const sections = document.querySelectorAll('.quiz-section');
+    sections.forEach(section => section.classList.remove('active'));
+    
+    const targetSection = document.getElementById(sectionId);
+    if (targetSection) {
+        targetSection.classList.add('active');
+        
+        const currentTime = Date.now();
+        quizAnalytics.totalTimeSpent += currentTime - quizAnalytics.lastTimestamp;
+        quizAnalytics.lastTimestamp = currentTime;
+        
+        const sectionNumber = parseInt(sectionId.split('-')[1]);
+        const furthestNumber = parseInt(quizAnalytics.furthestSection.split('-')[1]);
+        if (sectionNumber > furthestNumber) {
+            quizAnalytics.furthestSection = sectionId;
+        }
+        
+        updateProgress(sectionId);
+    }
+}
 
             function updateProgress(sectionId) {
                 const totalSections = 4;
